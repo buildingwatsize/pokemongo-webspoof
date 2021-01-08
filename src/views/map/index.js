@@ -51,7 +51,7 @@ class Map extends Component {
 
     try {
       const { data: { loc } } = await axios({ url: 'http://ipinfo.io/' })
-      const [ latitude, longitude ] = loc.split(',').map(coord => parseFloat(coord))
+      const [latitude, longitude] = loc.split(',').map(coord => parseFloat(coord))
       this.handleGeolocationSuccess({ coords: { latitude, longitude } })
     } catch (xhrErr) {
       Alert.error(`
@@ -63,7 +63,7 @@ class Map extends Component {
   }
 
   @action handleGeolocationSuccess({ coords: { latitude, longitude } }) {
-    userLocation.replace([ latitude, longitude ])
+    userLocation.replace([latitude, longitude])
   }
 
   @action toggleMapDrag = () => {
@@ -72,66 +72,69 @@ class Map extends Component {
   }
 
   @action handleClick = ({ lat, lng }, force) => {
+    console.log(lat, lng, force);
     if (!this.mapOptions.draggable || force) {
       this.autopilot.handleSuggestionChange({ suggestion: { latlng: { lat, lng } } })
     }
   }
 
   render() {
-    const [ latitude, longitude ] = userLocation
+    const [latitude, longitude] = userLocation
 
     return (
       <div className='google-map-container'>
-        { /* only display google map when user geolocated */ }
+        { /* only display google map when user geolocated */}
         { (latitude && longitude) ?
           <GoogleMap
-            ref={ (ref) => { this.map = ref } }
-            zoom={ settings.zoom.get() }
-            center={ [ latitude, longitude ] }
-            onClick={ this.handleClick }
-            options={ () => this.mapOptions }
-            onGoogleApiLoaded={ this.handleGoogleMapLoaded }
-            yesIWantToUseGoogleMapApiInternals={ true }
-            apiKey={ MapsApi.apiKey }>
-
-            { /* userlocation center */ }
-            <Pokeball lat={ userLocation[0] } lng={ userLocation[1] } />
+            ref={(ref) => { this.map = ref }}
+            zoom={settings.zoom.get()}
+            center={[latitude, longitude]}
+            onClick={this.handleClick}
+            options={() => this.mapOptions}
+            onGoogleApiLoaded={this.handleGoogleMapLoaded}
+            yesIWantToUseGoogleMapApiInternals={true}
+            bootstrapURLKeys={{
+              key: MapsApi.apiKey,
+              language: "th"
+            }}
+          >
+            <Pokeball lat={userLocation[0]} lng={userLocation[1]} />
           </GoogleMap> :
           <div
-            style={ {
+            style={{
               position: 'absolute',
               top: 'calc(50vh - (100px / 2) - 60px)',
               left: 'calc(50vw - (260px / 2))'
-            } }
+            }}
             className='alert alert-info text-center'>
             <i
-              style={ { marginBottom: 10 } }
+              style={{ marginBottom: 10 }}
               className='fa fa-spin fa-2x fa-refresh' />
             <div>Loading user location & map...</div>
-          </div> }
+          </div>}
 
         <div className='btn btn-drag-map'>
-          { this.mapOptions.draggable ?
+          {this.mapOptions.draggable ?
             <div
               className='btn btn-sm btn-primary'
-              onClick={ this.toggleMapDrag }>
+              onClick={this.toggleMapDrag}>
               Map draggable
             </div> :
             <div
               className='btn btn-sm btn-secondary'
-              onClick={ this.toggleMapDrag }>
+              onClick={this.toggleMapDrag}>
               Map locked
-            </div> }
+            </div>}
         </div>
 
-        { /* controls, settings displayed on top of the map */ }
+        { /* controls, settings displayed on top of the map */}
         <Coordinates />
         <SpeedCounter />
         <SpeedLimit />
         <BooleanSettings />
         <Controls />
         <TotalDistance />
-        <Autopilot ref={ (ref) => { this.autopilot = ref } } />
+        <Autopilot ref={(ref) => { this.autopilot = ref }} />
       </div>
     )
   }

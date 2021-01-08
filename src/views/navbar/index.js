@@ -4,7 +4,7 @@ import UserLocationName from './user-location-name.js'
 import GithubStar from './github-star.js'
 
 const Navbar = () =>
-  <div className='navbar clearfix'>
+  <div className='navbar'>
     <UserLocationName />
     <GithubStar />
   </div>

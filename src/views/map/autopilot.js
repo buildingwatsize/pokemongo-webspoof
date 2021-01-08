@@ -7,14 +7,16 @@ import places from 'places.js'
 import cx from 'classnames'
 
 import autopilot from '../../models/autopilot.js'
+import MapsApi from '../../config/api.js'
+import Axios from 'axios'
 
 const travelModes = [
-  [ 'walk', 9, 'street-view' ],
-  [ 'cycling', 13, 'bicycle' ], // Credit to https://github.com/DJLectr0
-  [ 'subway', 50, 'subway' ],
-  [ 'truck', 80, 'truck' ],
-  [ 'car', 120, 'car' ],
-  [ 'teleport', '~', 'star' ]
+  ['walk', 9, 'street-view'],
+  ['cycling', 13, 'bicycle'], // Credit to https://github.com/DJLectr0
+  ['subway', 50, 'subway'],
+  ['truck', 80, 'truck'],
+  ['car', 120, 'car'],
+  ['teleport', '~', 'star']
 ]
 
 @observer
@@ -22,26 +24,29 @@ class Autopilot extends Component {
 
   @observable isModalOpen = false
   @observable travelMode = 'walk'
+  @observable search = ''
+  @observable searchResult = []
+  @observable isSearchLoading = false
 
   @computed get speed() {
-    const [ , speed ] = travelModes.find(([ t ]) => t === this.travelMode)
+    const [, speed] = travelModes.find(([t]) => t === this.travelMode)
     return speed
   }
 
   @computed get travelModeName() {
-    const [ travelModeName ] = travelModes.find(([ t ]) => t === this.travelMode)
+    const [travelModeName] = travelModes.find(([t]) => t === this.travelMode)
     return travelModeName
   }
 
   @computed get travelModeIcon() {
-    const [ , , travelModeIcon ] = travelModes.find(([ t ]) => t === this.travelMode)
+    const [, , travelModeIcon] = travelModes.find(([t]) => t === this.travelMode)
     return travelModeIcon
   }
 
   componentDidMount() {
     // initialize algolia places input
-    this.placesAutocomplete = places({ container: this.placesEl })
-    this.placesAutocomplete.on('change', this.handleSuggestionChange)
+    // this.placesAutocomplete = places({ container: this.placesEl })
+    // this.placesAutocomplete.on('change', this.handleSuggestionChange)
 
     window.addEventListener('keyup', ({ keyCode }) => {
       if (keyCode === 27 && this.isModalOpen) {
@@ -58,14 +63,60 @@ class Autopilot extends Component {
     })
   }
 
-  @action handleSuggestionChange = ({ suggestion: { latlng: { lat, lng } } }) =>
+  @action searchPlaces = () => {
+    if (this.search === "") {
+      this.isSearchLoading = false
+      this.searchResult = []
+      return
+    }
+
+    const apiKey = MapsApi.placeApiKey
+    if (!apiKey) {
+      throw new Error("Missing MapBox API Key")
+    }
+
+    let me = this
+    Axios.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${this.search}.json?country=th&access_token=${apiKey}`)
+      .then(response => {
+        me.searchResult = response.data.features
+        me.isSearchLoading = false
+      })
+  }
+
+  @action handleChangeDestination = ({ target: { value } }) => {
+    this.search = value
+    this.isSearchLoading = true
+
+    clearTimeout(this.timeoutId)
+
+    // Launch a new request in 1000ms
+    this.timeoutId = setTimeout(() => {
+      this.searchPlaces()
+    }, 1000)
+  }
+
+  @action handleItemClicked = ({ geometry: { coordinates: [lng, lat, ..._] } }) => {
+    // console.log(lng, lat, rest)
     autopilot.scheduleTrip(lat, lng)
       .then(() => { if (!this.isModalOpen) this.isModalOpen = true })
-      .catch(() => this.placesAutocomplete.setVal(null))
+      .catch(() => { })
+  }
+
+  @action handleCloseSearchResult = () => {
+    this.search = ""
+    this.searchResult = []
+    this.isSearchLoading = false
+  }
+
+  // @action handleSuggestionChange = ({ suggestion: { latlng: { lat, lng } } }) =>
+  //   autopilot.scheduleTrip(lat, lng)
+  //     .then(() => { if (!this.isModalOpen) this.isModalOpen = true })
+  //     .catch(() => this.placesAutocomplete.setVal(null))
 
   @action handleStartAutopilot = () => {
     // reset modal state
-    this.placesAutocomplete.setVal(null)
+    // this.placesAutocomplete.setVal(null)
+    this.handleCloseSearchResult()
 
     // TODO: Refactor it's ugly
     // update `autopilot` data
@@ -98,7 +149,7 @@ class Autopilot extends Component {
       return (
         <div
           className='toggle pause btn btn-warning'
-          onClick={ autopilot.pause }>
+          onClick={autopilot.pause}>
           <i className='fa fa-pause' />
         </div>
       )
@@ -108,7 +159,7 @@ class Autopilot extends Component {
       return (
         <div
           className='toggle resume btn btn-success'
-          onClick={ autopilot.start }>
+          onClick={autopilot.start}>
           <i className='fa fa-play' />
         </div>
       )
@@ -119,71 +170,83 @@ class Autopilot extends Component {
   render() {
     return (
       <div className='autopilot'>
-        { this.renderTogglePause() }
+        { this.renderTogglePause()}
         { !autopilot.clean &&
           <div
             className='edit btn btn-primary'
-            onClick={ this.handleChangeSpeed }>
-            <i className={ `fa fa-${this.travelModeIcon}` } />
+            onClick={this.handleChangeSpeed}>
+            <i className={`fa fa-${this.travelModeIcon}`} />
           </div>
         }
-        <div className={ cx('algolia-places', { hide: !autopilot.clean }) }>
-          <input ref={ (ref) => { this.placesEl = ref } } type='search' placeholder='Destination' />
+        <div className={cx('algolia-places', { hide: !autopilot.clean })}>
+          {/* <input ref={(ref) => { this.placesEl = ref }} type='search' placeholder='Destination' /> */}
+          <input id="myInput" type='search' placeholder='Destination' value={this.search} onChange={this.handleChangeDestination} />
+          <ul id="myUL">
+            {!this.isSearchLoading && this.searchResult.map(place => (
+              <li
+                key={place.id}
+                onClick={() => this.handleItemClicked(place)}
+              >
+                <a href="#">{place.place_name}</a>
+              </li>
+            ))}
+            {this.isSearchLoading && <li><a href="#">Loading...</a></li>}
+          </ul>
         </div>
         { !autopilot.clean &&
           <div
             className='autopilot-btn btn btn-danger'
-            onClick={ autopilot.stop }>
+            onClick={autopilot.stop}>
             Stop autopilot
-          </div> }
-        <div className={ cx('autopilot-modal', { open: this.isModalOpen }) }>
+          </div>}
+        <div className={cx('autopilot-modal', { open: this.isModalOpen })}>
           <div className='travel-modes row'>
-            { travelModes.map(([ name, speed, icon ]) =>
+            {travelModes.map(([name, speed, icon]) =>
               <div
-                key={ name }
-                className={ `col-xs-4 text-center ${name}` }
-                onClick={ this.handleSelectTravelMode(name, speed) }>
-                <div className={ cx('card travel-mode', { selected: name === this.travelMode }) }>
+                key={name}
+                className={`col-xs-4 text-center ${name}`}
+                onClick={this.handleSelectTravelMode(name, speed)}>
+                <div className={cx('card travel-mode', { selected: name === this.travelMode })}>
                   <div className='card-block'>
-                    <div className={ `fa fa-${icon}` } />
+                    <div className={`fa fa-${icon}`} />
                     <div className='desc'>
-                      <strong>{ capitalize(name) } </strong>
-                      <span>{ speed } { speed !== '~' && 'km/h' }</span>
+                      <strong>{capitalize(name)} </strong>
+                      <span>{speed} {speed !== '~' && 'km/h'}</span>
                     </div>
                   </div>
                 </div>
               </div>
-            ) }
+            )}
           </div>
           <hr />
-          { (autopilot.accurateSteps.length !== 0) ?
+          {(autopilot.accurateSteps.length !== 0) ?
             <div className='infos row'>
               <div className='col-xs-4 text-center'>
                 <strong>Distance: </strong>
                 <span className='tag tag-info'>
-                  { autopilot.distance.toFixed(2) } km
+                  {autopilot.distance.toFixed(2)} km
                 </span>
               </div>
               <div className='col-xs-4 text-center'>
                 <strong>Speed: </strong>
                 <span className='tag tag-info'>
-                  { this.speed } km/h
+                  {this.speed} km/h
                 </span>
               </div>
               <div className='col-xs-4 text-center'>
                 <strong>Time: </strong>
                 <span className='tag tag-info'>
-                  { autopilot.time }
+                  {autopilot.time}
                 </span>
               </div>
             </div> :
-            <noscript /> }
+            <noscript />}
           <div className='text-center row'>
             <div className='col-xs-2'>
               <button
                 type='button'
                 className='btn btn-block btn-sm btn-danger'
-                onClick={ this.handleCancelAutopilot }>
+                onClick={this.handleCancelAutopilot}>
                 Cancel
               </button>
             </div>
@@ -191,9 +254,9 @@ class Autopilot extends Component {
               <button
                 type='button'
                 className='btn btn-block btn-sm btn-success'
-                disabled={ autopilot.accurateSteps.length === 0 }
-                onClick={ this.handleStartAutopilot }>
-                { !autopilot.clean ? 'Update' : 'Start' } autopilot!
+                disabled={autopilot.accurateSteps.length === 0}
+                onClick={this.handleStartAutopilot}>
+                {!autopilot.clean ? 'Update' : 'Start'} autopilot!
               </button>
             </div>
           </div>

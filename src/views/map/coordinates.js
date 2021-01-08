@@ -10,22 +10,22 @@ const handleChange = (idx) => action(({ target: { value } }) => {
 
 const Coordinates = observer(() =>
   <div className='clearfix coordinates'>
-    { [ 'lat', 'lng' ].map((direction, idx) =>
-      <div key={ idx } className='pull-xs-left'>
+    {['lat', 'lng'].map((direction, idx) =>
+      <div key={idx} className='pull-xs-left'>
         <div className='input-group'>
           <span className='input-group-addon' id='basic-addon1'>
-            { direction }
+            {direction + " : "}
           </span>
           <input
             type='text'
             className='form-control'
-            placeholder={ direction }
+            placeholder={direction}
             aria-describedby='basic-addon1'
-            value={ userLocation[idx] }
-            onChange={ handleChange(idx) } />
+            value={userLocation[idx]}
+            onChange={handleChange(idx)} />
         </div>
       </div>
-    ) }
+    )}
   </div>
 )
 

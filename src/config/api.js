@@ -5,7 +5,8 @@
 */
 
 const MapsApi = {
-    apiKey: 'AIzaSyAdyrjjShdj9h-UqjJYGbKuYlHkaI6GkF8'
+    apiKey: 'GOOGLE_API_KEY',
+    placeApiKey: 'MAPBOX_API_KEY'
 }
 
 export default MapsApi
