@@ -60,7 +60,7 @@ class Autopilot {
     // ask google map to find a route
     directionsService.route(directionsRequest, (response, status) => {
       if (status === maps.DirectionsStatus.OK) {
-        const { routes: [ { overview_path } ] } = response
+        const { routes: [{ overview_path }] } = response
         this.rawOverviewPath = overview_path
         return resolve(overview_path)
       }
@@ -82,7 +82,7 @@ class Autopilot {
           if (isNaN(this.speed)) {
             return {
               distance: result.distance + pendingDistance,
-              steps: [ { lat: endLat(), lng: endLng() } ]
+              steps: [{ lat: endLat(), lng: endLng() }]
             }
           }
 
@@ -99,7 +99,7 @@ class Autopilot {
           })
           return {
             distance: result.distance + pendingDistance,
-            steps: [ ...result.steps, ...stepsInBetween ]
+            steps: [...result.steps, ...stepsInBetween]
           }
         }
         return result
@@ -129,10 +129,10 @@ class Autopilot {
 
     const moveNextPoint = action(() => {
       if (this.steps.length !== -1) {
-        const [ { lat: nextLat, lng: nextLng } ] = this.steps
+        const [{ lat: nextLat, lng: nextLng }] = this.steps
 
         // move to locaiton
-        userLocation.replace([ nextLat, nextLng ])
+        userLocation.replace([nextLat, nextLng])
         // remove first location that we moved to
         this.steps.remove(this.steps[0])
 
@@ -141,6 +141,32 @@ class Autopilot {
           this.timeout = setTimeout(moveNextPoint, 1000)
         } else {
           this.stop()
+        }
+      }
+    })
+    moveNextPoint()
+  }
+
+  startLoop = () => {
+    this.running = true
+    this.paused = false
+    const wayBack = this.steps.reverse()
+
+    const moveNextPoint = action(() => {
+      if (this.steps.length !== -1) {
+        const [{ lat: nextLat, lng: nextLng }] = this.steps
+
+        // move to locaiton
+        userLocation.replace([nextLat, nextLng])
+        // remove first location that we moved to
+        this.steps.remove(this.steps[0])
+
+        // move on to the next location
+        if (this.steps.length !== 0) {
+          this.timeout = setTimeout(moveNextPoint, 1000)
+        } else {
+          this.steps = wayBack
+          this.startLoop()
         }
       }
     })

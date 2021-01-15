@@ -5,24 +5,24 @@ import cx from 'classnames'
 import { addJitterToMoves, stationaryUpdates, updateXcodeLocation } from '../../models/settings.js'
 
 const settings = [
-  [ addJitterToMoves, 'Add randomness to moves' ],
-  [ stationaryUpdates, 'Update even when stationary' ],
-  [ updateXcodeLocation, 'Auto update Xcode location' ]
+  [addJitterToMoves, 'Add randomness to moves'],
+  [stationaryUpdates, 'Update even when stationary'],
+  [updateXcodeLocation, 'Auto update Xcode location']
 ]
 
 const BooleanSettings = observer(() =>
   <div className='boolean-settings'>
-    { settings.map(([ setting, label ], idx) =>
+    {settings.map(([setting, label], idx) =>
       <div
-        key={ idx }
-        onClick={ () => setting.set(!setting.get()) }
-        className={ cx('btn btn-sm', {
+        key={idx}
+        onClick={() => setting.set(!setting.get())}
+        className={cx('btn btn-sm', {
           'btn-primary': setting.get(),
           'btn-secondary': !setting.get()
-        }) }>
-        { label }
+        })}>
+        {label}
       </div>
-    ) }
+    )}
   </div>
 )
 

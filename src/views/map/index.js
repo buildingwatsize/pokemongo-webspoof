@@ -20,6 +20,15 @@ import Pokeball from './pokeball.js'
 
 import MapsApi from '../../config/api.js'
 
+const fixFirstPlace = [13.8299, 100.5333] // Centric Scene Ratchavipha
+const shortcuts = [
+  [13.745482102239997, 100.5339745666664, "Siam"],
+  [13.826830000000001, 100.52787000000001, "BIGC"],
+  [13.82933, 100.53351, "Home"],
+  [13.831510000000002, 100.53866000000001, "HOSP"],
+  [13.840989, 100.578238, "BAAC"],
+]
+
 @observer
 class Map extends Component {
 
@@ -47,18 +56,22 @@ class Map extends Component {
     Alert.warning(`
       <strong>Error getting your geolocation, using IP location</strong>
       <div class='stack'>${geolocationErr.message}</div>
-    `, { timeout: 3000 })
+    `, { timeout: 1000 })
 
-    try {
-      const { data: { loc } } = await axios({ url: 'http://ipinfo.io/' })
-      const [latitude, longitude] = loc.split(',').map(coord => parseFloat(coord))
-      this.handleGeolocationSuccess({ coords: { latitude, longitude } })
-    } catch (xhrErr) {
-      Alert.error(`
-        <strong>Could not use IP location</strong>
-        <div>Try to restart app, report issue to github</div>
-        <div class='stack'>${xhrErr}</div>
-      `)
+    if (fixFirstPlace[0]) {
+      this.handleGeolocationSuccess({ coords: { latitude: fixFirstPlace[0], longitude: fixFirstPlace[1] } })
+    } else {
+      try {
+        const { data: { loc } } = await axios({ url: 'http://ipinfo.io/' })
+        const [latitude, longitude] = loc.split(',').map(coord => parseFloat(coord))
+        this.handleGeolocationSuccess({ coords: { latitude, longitude } })
+      } catch (xhrErr) {
+        Alert.error(`
+          <strong>Could not use IP location</strong>
+          <div>Try to restart app, report issue to github</div>
+          <div class='stack'>${xhrErr}</div>
+        `)
+      }
     }
   }
 
@@ -74,8 +87,13 @@ class Map extends Component {
   @action handleClick = ({ lat, lng }, force) => {
     console.log(lat, lng, force);
     if (!this.mapOptions.draggable || force) {
-      this.autopilot.handleSuggestionChange({ suggestion: { latlng: { lat, lng } } })
+      this.goto(lat, lng)
     }
+  }
+
+  @action goto = (lat, lng) => {
+    console.log(lat, lng);
+    this.autopilot.handleSuggestionChange({ suggestion: { latlng: { lat, lng } } })
   }
 
   render() {
@@ -118,13 +136,24 @@ class Map extends Component {
             <div
               className='btn btn-sm btn-primary'
               onClick={this.toggleMapDrag}>
-              Map draggable
+              Draggable
             </div> :
             <div
               className='btn btn-sm btn-secondary'
               onClick={this.toggleMapDrag}>
-              Map locked
+              Locked
             </div>}
+        </div>
+
+        <div className="shortcut">
+          {shortcuts.map(([lat, lng, label], idx) => (
+            <div
+              key={`shortcut-${idx}`}
+              onClick={() => this.goto(lat, lng)}
+              className={'btn btn-sm btn-info'}>
+              {label}
+            </div>
+          ))}
         </div>
 
         { /* controls, settings displayed on top of the map */}

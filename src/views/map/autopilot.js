@@ -3,7 +3,7 @@ import { capitalize } from 'lodash'
 import React, { Component } from 'react'
 import { action, observable, computed } from 'mobx'
 import { observer } from 'mobx-react'
-import places from 'places.js'
+// import places from 'places.js'
 import cx from 'classnames'
 
 import autopilot from '../../models/autopilot.js'
@@ -99,7 +99,7 @@ class Autopilot extends Component {
     // console.log(lng, lat, rest)
     autopilot.scheduleTrip(lat, lng)
       .then(() => { if (!this.isModalOpen) this.isModalOpen = true })
-      .catch(() => { })
+      .catch(() => { /* this.placesAutocomplete.setVal(null) */ })
   }
 
   @action handleCloseSearchResult = () => {
@@ -108,10 +108,10 @@ class Autopilot extends Component {
     this.isSearchLoading = false
   }
 
-  // @action handleSuggestionChange = ({ suggestion: { latlng: { lat, lng } } }) =>
-  //   autopilot.scheduleTrip(lat, lng)
-  //     .then(() => { if (!this.isModalOpen) this.isModalOpen = true })
-  //     .catch(() => this.placesAutocomplete.setVal(null))
+  @action handleSuggestionChange = ({ suggestion: { latlng: { lat, lng } } }) =>
+    autopilot.scheduleTrip(lat, lng)
+      .then(() => { if (!this.isModalOpen) this.isModalOpen = true })
+      .catch(() => { /* this.placesAutocomplete.setVal(null) */ })
 
   @action handleStartAutopilot = () => {
     // reset modal state
@@ -126,9 +126,22 @@ class Autopilot extends Component {
     this.isModalOpen = false
   }
 
+  @action handleStartAutopiloop = () => {
+    // reset modal state
+    // this.placesAutocomplete.setVal(null)
+    this.handleCloseSearchResult()
+
+    // TODO: Refactor it's ugly
+    // update `autopilot` data
+    autopilot.steps = JSON.parse(JSON.stringify(autopilot.accurateSteps))
+    autopilot.startLoop()
+
+    this.isModalOpen = false
+  }
+
   @action handleCancelAutopilot = () => {
     // reset modal state
-    this.placesAutocomplete.setVal(null)
+    // this.placesAutocomplete.setVal(null)
     this.isModalOpen = false
   }
 
@@ -257,6 +270,15 @@ class Autopilot extends Component {
                 disabled={autopilot.accurateSteps.length === 0}
                 onClick={this.handleStartAutopilot}>
                 {!autopilot.clean ? 'Update' : 'Start'} autopilot!
+              </button>
+            </div>
+            <div className='col-xs-10'>
+              <button
+                type='button'
+                className='btn btn-block btn-sm btn-info'
+                disabled={autopilot.accurateSteps.length === 0}
+                onClick={this.handleStartAutopiloop}>
+                {!autopilot.clean ? 'Update' : 'Start'} autopiloop!
               </button>
             </div>
           </div>

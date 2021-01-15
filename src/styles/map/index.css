@@ -18,6 +18,17 @@
   .btn-drag-map {
     position: absolute;
     bottom: 14px;
-    right: 30px;
+    right: 40px;
+  }
+
+  .shortcut {
+    position: absolute;
+    bottom: 17px;
+    right: 142px;
+    display: flex;
+    justify-content: flex-end;
+    .btn {
+      margin: 4px;
+    }
   }
 }
